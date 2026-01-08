@@ -8,149 +8,149 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
         :root {
-            --bg-black: #000000; --card-gray: #1c1c1e; --input-gray: #2c2c2e;
-            --apple-blue: #0071e3; --apple-gold: #ffd60a; --apple-red: #ff3b30;
+            --bg-black: #000000; --card-gray: rgba(28, 28, 30, 0.7); --input-gray: #2c2c2e;
+            --apple-blue: #0071e3; --apple-gold: #ffd60a; --apple-red: #ff453a;
             --text-main: #f5f5f7; --text-sub: #86868b;
-            --bid-purple: #2d005d;
-            --apple-font: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Segoe UI", Roboto, sans-serif;
+            --apple-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Apple SD Gothic Neo", "Pretendard", sans-serif;
         }
 
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; font-family: var(--apple-font); background-color: var(--bg-black); color: var(--text-main); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
-        h1, h2, h3, p, div, span, button, input { font-family: var(--apple-font) !important; }
-        .section-view { display: none; width: 100%; min-height: 100vh; flex-direction: column; align-items: center; }
-        .section-view.active { display: flex; }
+        h1, h2, h3, button, input { font-family: var(--apple-font) !important; }
 
-        /* --- 01. 네비게이션 (중앙 정렬 유지) --- */
-        .nav-bar { position: sticky; top: 0; width: 100%; height: 50px; background: rgba(0,0,0,0.7); backdrop-filter: saturate(180%) blur(20px); display: flex; justify-content: center; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.08); z-index: 1000; }
-        .made-by { font-size: 11px; color: #555; letter-spacing: 1.5px; font-weight: 800; text-transform: uppercase; }
+        /* 매끄러운 화면 전환 애니메이션 */
+        .section-view { display: none; width: 100%; min-height: 100vh; flex-direction: column; align-items: center; opacity: 0; transition: opacity 0.5s ease-in-out; }
+        .section-view.active { display: flex; opacity: 1; }
 
-        /* --- 02. 메인 랜딩 (원본 디자인 보존) --- */
-        .bg-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at 50% 50%, #1a0b2e 0%, #000000 100%); z-index: -1; }
-        .hero-container { text-align: center; max-width: 1200px; padding: 20px; z-index: 10; margin-top: 12vh; display: flex; flex-direction: column; align-items: center; }
-        .main-title { font-size: 88px; font-weight: 800; margin: 0; letter-spacing: -0.04em; background: linear-gradient(180deg, #ffffff 0%, #a1a1a6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        /* --- 01. 네비게이션 (뒤로가기 버튼 복구) --- */
+        .nav-bar { position: sticky; top: 0; width: 100%; height: 50px; background: rgba(0,0,0,0.7); backdrop-filter: saturate(180%) blur(20px); display: grid; grid-template-columns: 120px 1fr 120px; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.08); z-index: 1000; }
+        .nav-back { padding-left: 20px; color: var(--apple-blue); cursor: pointer; font-size: 14px; font-weight: 600; }
+        .made-by { text-align: center; font-size: 11px; color: #555; letter-spacing: 1.5px; font-weight: 800; text-transform: uppercase; }
+
+        /* --- 02. 메인 랜딩 (사용자 디자인 보존) --- */
+        .bg-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at 50% 50%, #1a1a1c 0%, #000000 100%); z-index: -1; }
+        .hero-container { text-align: center; max-width: 1200px; padding: 20px; z-index: 10; margin-top: 15vh; }
+        .main-title { font-size: 84px; font-weight: 800; margin: 0; letter-spacing: -0.04em; background: linear-gradient(180deg, #ffffff 0%, #a1a1a6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .start-btn { background-color: var(--apple-blue); color: white; border: none; padding: 18px 56px; border-radius: 980px; font-size: 20px; font-weight: 600; cursor: pointer; transition: 0.3s; margin-top: 50px; }
 
-        /* --- 03. 설정 페이지 (5열 그리드 정렬 복구/버튼 깨짐 수정) --- */
-        .setup-container { width: 95%; max-width: 1200px; padding-bottom: 150px; margin-top: 50px; }
-        .setup-card { background-color: var(--card-gray); border-radius: 22px; padding: 34px; margin-bottom: 26px; border: 1px solid rgba(255, 255, 255, 0.02); }
-        .list-row { display: grid; grid-template-columns: 45px 1.2fr 2.8fr 1.8fr 0.8fr; gap: 14px; align-items: center; background: rgba(255,255,255,0.03); padding: 14px 18px; border-radius: 16px; margin-bottom: 14px; }
-        .btn-group { display: flex; background: #000; border-radius: 11px; padding: 3px; gap: 2px; }
-        .btn-item { flex: 1; padding: 9px 0; border: none; background: none; color: #5a5a5e; font-size: 10px; font-weight: 800; cursor: pointer; border-radius: 8px; transition: 0.2s; white-space: nowrap; }
-        .btn-item.active { background: #323235; color: white; }
-        input { background-color: var(--input-gray); border: none; border-radius: 12px; padding: 14px; color: white; font-size: 15px; outline: none; width: 100%; box-sizing: border-box; }
-        .action-bar { position: fixed; bottom: 0; width: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(25px); padding: 22px 0; display: flex; justify-content: center; border-top: 1px solid rgba(255,255,255,0.1); z-index: 100; }
-        .btn-primary { padding: 18px 80px; border-radius: 980px; font-size: 18px; font-weight: 700; background-color: var(--apple-blue); color: white; border: none; cursor: pointer; }
+        /* --- 03. 설정 페이지 (5열 그리드 완벽 고정) --- */
+        .setup-container { width: 95%; max-width: 1100px; padding-bottom: 150px; margin-top: 50px; }
+        .setup-card { background: var(--card-gray); backdrop-filter: blur(20px); border-radius: 24px; padding: 40px; margin-bottom: 30px; border: 1px solid rgba(255, 255, 255, 0.1); }
+        .list-row { display: grid; grid-template-columns: 45px 1.2fr 2.8fr 1.8fr 0.8fr; gap: 15px; align-items: center; background: rgba(255,255,255,0.03); padding: 15px 20px; border-radius: 16px; margin-bottom: 12px; }
+        .btn-group { display: flex; background: #000; border-radius: 10px; padding: 3px; gap: 2px; }
+        .btn-item { flex: 1; padding: 9px 0; border: none; background: none; color: #86868b; font-size: 10px; font-weight: 700; cursor: pointer; border-radius: 7px; transition: 0.2s; white-space: nowrap; }
+        .btn-item.active { background: #3a3a3c; color: white; }
+        input { background: #1c1c1e; border: 1px solid #3a3a3c; border-radius: 12px; padding: 14px; color: white; font-size: 15px; outline: none; width: 100%; box-sizing: border-box; }
 
-        /* --- 04. 경매장 (이미지 스타일 & 타이머 바 개선) --- */
-        .auction-screen { width: 100%; min-height: 100vh; background: linear-gradient(180deg, var(--bid-purple) 0%, #000 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .bid-card { background: rgba(255,255,255,0.05); backdrop-filter: blur(30px); border-radius: 40px; padding: 50px; width: 90%; max-width: 650px; text-align: center; border: 1px solid rgba(255,255,255,0.1); }
-        .timer-progress-wrap { width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 100px; margin: 25px 0; overflow: hidden; }
-        .timer-progress-fill { height: 100%; background: #ff5252; width: 100%; transition: width 0.1s linear; } /* 매끄러운 타이머 전환 */
-        
-        /* 입찰 로그 리스트 */
-        .log-panel { position: fixed; right: 20px; top: 70px; width: 300px; height: 80vh; background: rgba(0,0,0,0.4); backdrop-filter: blur(20px); border-radius: 30px; border: 1px solid rgba(255,255,255,0.05); padding: 20px; overflow-y: auto; }
-        .log-item { background: rgba(255,255,255,0.05); padding: 12px; border-radius: 15px; margin-bottom: 10px; font-size: 13px; border-left: 4px solid var(--apple-blue); }
+        /* --- 04. 경매 시스템 UI (중앙 정렬 및 Apple 감성) --- */
+        .auction-screen { width: 100%; min-height: 100vh; display: flex; align-items: center; justify-content: center; position: relative; }
+        .bid-card { background: var(--card-gray); backdrop-filter: blur(40px); border-radius: 38px; padding: 60px; width: 90%; max-width: 650px; text-align: center; border: 1px solid rgba(255, 255, 255, 0.12); }
+        .timer-progress-wrap { width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 100px; margin: 30px 0; overflow: hidden; }
+        .timer-progress-fill { height: 100%; background: var(--apple-blue); width: 100%; transition: width 0.1s linear; }
+        .current-price-val { font-size: 88px; font-weight: 700; color: var(--apple-gold); margin: 10px 0; letter-spacing: -3px; }
 
-        .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); display:none; justify-content:center; align-items:center; z-index:2000; }
+        /* 모달 및 복사 버튼 */
+        .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); backdrop-filter: blur(20px); display:none; justify-content:center; align-items:center; z-index:2000; }
+        .modal-card { background: #1c1c1e; border-radius:30px; padding:40px; width:90%; max-width:550px; text-align:center; border: 1px solid rgba(255,255,255,0.1); }
+        .link-box { background:#000; padding:12px; border-radius:12px; border:1px solid #333; margin-bottom:10px; display:flex; align-items:center; gap:10px; }
+        .link-text { color: var(--apple-blue); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; text-align: left; }
+        .copy-btn { background: #333; color: #fff; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; cursor: pointer; }
     </style>
 </head>
 <body>
 
     <audio id="sound-success" src="https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3"></audio>
 
-    <div class="nav-bar"><div class="made-by">Gamza ⓒ Lolvely</div></div>
+    <div class="nav-bar">
+        <div class="nav-back" id="nav-back-btn" style="visibility:hidden;" onclick="handleBack()">&lt; 뒤로가기</div>
+        <div class="made-by">Gamza ⓒ Lolvely</div>
+        <div></div>
+    </div>
 
     <div id="view-main" class="section-view active">
         <div class="bg-canvas"></div>
         <div class="hero-container">
             <h1 class="main-title">롤블리 경매</h1>
-            <button class="start-btn" onclick="navigateTo('setup')">경매 시작하기</button>
+            <button class="start-btn" onclick="nextSection('setup')">경매 준비 시작</button>
         </div>
     </div>
 
     <div id="view-setup" class="section-view">
         <div class="setup-container">
             <section class="setup-card">
-                <h3>01. 팀장 정보 (1:4 규칙)</h3>
+                <h3>01. 팀장 설정 (1:4 규칙)</h3>
                 <div id="captain-list">
                     <div class="list-row">
-                        <div class="num">C1</div>
+                        <div style="color: #86868b; font-weight: 700;">C1</div>
                         <input type="text" placeholder="성함" class="cap-name-in">
                         <div class="btn-group">
-                            <button class="btn-item" onclick="toggleActive(this)">I</button><button class="btn-item" onclick="toggleActive(this)">B</button><button class="btn-item active" onclick="toggleActive(this)">S</button><button class="btn-item" onclick="toggleActive(this)">G</button><button class="btn-item" onclick="toggleActive(this)">E</button><button class="btn-item" onclick="toggleActive(this)">P</button><button class="btn-item" onclick="toggleActive(this)">M</button><button class="btn-item" onclick="toggleActive(this)">GM</button><button class="btn-item" onclick="toggleActive(this)">C</button>
+                            <button class="btn-item" onclick="toggleActive(this)">I</button><button class="btn-item active" onclick="toggleActive(this)">S</button><button class="btn-item" onclick="toggleActive(this)">G</button><button class="btn-item" onclick="toggleActive(this)">P</button><button class="btn-item" onclick="toggleActive(this)">D</button>
                         </div>
                         <div class="btn-group">
-                            <button class="btn-item active" onclick="toggleActive(this)">TOP</button><button class="btn-item" onclick="toggleActive(this)">JGL</button><button class="btn-item" onclick="toggleActive(this)">MID</button><button class="btn-item" onclick="toggleActive(this)">ADC</button><button class="btn-item" onclick="toggleActive(this)">SUP</button>
+                            <button class="btn-item active" onclick="toggleActive(this)">TOP</button><button class="btn-item" onclick="toggleActive(this)">MID</button>
                         </div>
                         <input type="number" value="1000" class="cap-pts-in">
                     </div>
                 </div>
-                <button class="btn-item active" style="margin-top:15px; padding:10px 20px; width:auto;" onclick="addRow('captain-list', 'C')">+ 팀장 추가</button>
+                <button style="background:none; border:1px solid #333; color:#fff; padding:10px 20px; border-radius:10px; cursor:pointer; margin-top:10px;" onclick="addRow('captain-list', 'C')">+ 팀장 추가</button>
             </section>
             <section class="setup-card">
                 <h3>02. 선수 명단</h3>
                 <div id="player-list">
                     <div class="list-row">
-                        <div class="num">1</div><input type="text" placeholder="성함" class="player-name-in">
+                        <div style="color: #86868b; font-weight: 700;">1</div>
+                        <input type="text" placeholder="성함" class="player-name-in">
                         <div class="btn-group"><button class="btn-item active" onclick="toggleActive(this)">G</button><button class="btn-item" onclick="toggleActive(this)">P</button></div>
                         <div class="btn-group"><button class="btn-item active" onclick="toggleActive(this)">MID</button><button class="btn-item" onclick="toggleActive(this)">ADC</button></div>
-                        <div style="width: 80px;"></div>
+                        <div style="width: 50px;"></div>
                     </div>
                 </div>
-                <button class="btn-item active" style="margin-top:15px; padding:10px 20px; width:auto;" onclick="addRow('player-list', '')">+ 선수 추가</button>
+                <button style="background:none; border:1px solid #333; color:#fff; padding:10px 20px; border-radius:10px; cursor:pointer; margin-top:10px;" onclick="addRow('player-list', '')">+ 선수 추가</button>
             </section>
         </div>
-        <div class="action-bar"><button class="btn-primary" onclick="validateAndCreate()">🚀 경매 세션 생성</button></div>
+        <div style="position:fixed; bottom:0; width:100%; background:rgba(0,0,0,0.8); padding:20px 0; display:flex; justify-content:center; border-top:1px solid rgba(255,255,255,0.1); z-index:100;">
+            <button class="start-btn" style="margin:0; width:90%;" onclick="validateAndCreate()">🚀 경매 세션 생성 및 링크 발급</button>
+        </div>
     </div>
 
-    <div id="view-auction" class="section-view" style="padding:0;">
+    <div id="view-auction" class="section-view">
         <div class="auction-screen">
             <div id="global-wait-ui" style="text-align:center;">
-                <h1 style="font-size:60px; font-weight:800; margin-bottom:20px;">경매 대기 중</h1>
-                <p style="color:var(--text-sub); font-size:20px;">주최자가 경매를 시작할 때까지 기다려 주세요.</p>
-                <div id="host-start-ctrl" style="display:none; margin-top:50px;">
-                    <button class="btn-primary" onclick="activateIntro()">팀장 소개 및 경매 시작</button>
-                </div>
+                <h1 style="font-size:60px; font-weight:800;">경매 대기 중</h1>
+                <button class="start-btn" id="host-start-btn" style="display:none;" onclick="activateAuction()">경매 정식 시작 (주최자)</button>
             </div>
 
-            <div id="main-auction-ui" style="display:none; width:100%; flex-direction:column; align-items:center;">
+            <div id="main-bid-ui" style="display:none; width:100%; flex-direction:column; align-items:center;">
                 <div class="bid-card">
-                    <div id="timer-text" style="font-size:80px; font-weight:800; color:#ff5252;">10.0초</div>
+                    <h1 id="board-p-name" style="font-size:60px; margin:0; font-weight:800;">선수 대기 중</h1>
                     <div class="timer-progress-wrap"><div id="timer-bar" class="timer-progress-fill"></div></div>
-                    
-                    <h1 id="board-p-name" style="font-size:60px; margin:0; font-weight:800;">선수 선택 중</h1>
-                    <div style="font-size:88px; font-weight:800; color:var(--apple-gold); margin:10px 0;" id="board-price">0p</div>
+                    <div id="timer-text" style="font-size:48px; font-weight:800; color:var(--apple-red); margin-bottom:20px;">5.0s</div>
+                    <div class="current-price-val" id="board-price">0p</div>
                     <p style="color:var(--text-sub);">최고 입찰자: <span id="board-winner" style="color:var(--apple-blue); font-weight:700;">없음</span></p>
 
-                    <div id="cap-bid-ui" style="display:none; margin-top:30px;">
-                        <p style="color:var(--text-sub); margin-bottom:15px;">내 남은 포인트: <b id="my-pts" style="color:var(--apple-gold);">1000p</b></p>
+                    <div id="cap-bid-ctrl" style="display:none; margin-top:30px;">
+                        <p style="color:var(--text-sub);">내 남은 포인트: <b id="my-pts" style="color:var(--apple-gold);">1000p</b></p>
                         <div style="display:flex; gap:15px; justify-content:center; align-items:center;">
                             <button class="btn-item active" style="width:60px; height:60px; font-size:18px;" onclick="adjBid(-10)">-10</button>
                             <input type="number" id="bid-input-val" value="50" style="background:#000; color:#fff; font-size:40px; text-align:center; width:120px; border:1px solid #333; border-radius:15px; padding:10px;" readonly>
                             <button class="btn-item active" style="width:60px; height:60px; font-size:18px;" onclick="adjBid(10)">+10</button>
                         </div>
-                        <button class="btn-primary" style="margin-top:30px; width:100%;" onclick="placeBid()">입찰하기 (타이머 리셋)</button>
+                        <button class="start-btn" style="margin-top:30px; width:100%;" onclick="placeBid()">입찰하기 (5초 리셋)</button>
                     </div>
 
-                    <div id="host-bid-ui" style="display:none; margin-top:40px;">
-                        <div id="player-selector-btns" style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-bottom:20px;"></div>
-                        <button class="btn-primary" style="background:var(--apple-red);" onclick="killSession()">경매 세션 폐기</button>
+                    <div id="host-bid-ctrl" style="display:none; margin-top:40px;">
+                        <div id="p-selector" style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-bottom:20px;"></div>
+                        <button class="start-btn" style="background:var(--apple-red); width:100%;" onclick="killSession()">세션 종료 및 파기</button>
                     </div>
-                </div>
-
-                <div class="log-panel" id="bid-log-panel">
-                    <h3 style="margin-top:0; color:var(--apple-blue);">입찰 현황 로그</h3>
-                    <div id="log-list-content"></div>
                 </div>
             </div>
         </div>
     </div>
 
     <div id="modal-overlay" class="modal-overlay">
-        <div style="background:var(--card-gray); border-radius:30px; padding:40px; width:90%; max-width:550px; text-align:center; border: 1px solid rgba(255,255,255,0.1);">
+        <div class="modal-card">
             <h2>경매 링크 생성 완료</h2>
             <div id="link-res-box" style="margin-top:25px; text-align:left;"></div>
-            <button class="btn-primary" style="width:100%; margin-top:30px;" onclick="enterAuctionHost()">주최자로 입장</button>
+            <button class="start-btn" style="width:100%; margin-top:30px;" onclick="enterHost()">주최자로 입장</button>
         </div>
     </div>
 
@@ -167,11 +167,28 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        let roomID = ""; let auth = ""; let myName = ""; let tIdx = 0; let timerMax = 50;
+        let roomID = ""; let myAuth = ""; let myName = ""; let tIdx = 0; let timerMax = 50;
+
+        function nextSection(id) {
+            const current = document.querySelector('.section-view.active');
+            current.style.opacity = '0';
+            setTimeout(() => {
+                current.classList.remove('active');
+                const next = document.getElementById('view-' + id);
+                next.classList.add('active');
+                document.getElementById('nav-back-btn').style.visibility = (id === 'main') ? 'hidden' : 'visible';
+                setTimeout(() => { next.style.opacity = '1'; }, 50);
+            }, 500);
+        }
+
+        function handleBack() {
+            const activeId = document.querySelector('.section-view.active').id;
+            if(activeId === 'view-setup') nextSection('main');
+            else if(activeId === 'view-auction' && confirm("경매장을 나가시겠습니까?")) nextSection('setup');
+        }
 
         function toggleActive(b) { b.parentElement.querySelectorAll('button').forEach(btn => btn.classList.remove('active')); b.classList.add('active'); }
-        function navigateTo(id) { document.querySelectorAll('.section-view').forEach(v => v.classList.remove('active')); document.getElementById('view-'+id).classList.add('active'); if(id === 'auction') syncEngine(); }
-        function addRow(id, pre) { const list = document.getElementById(id); const row = list.children[0].cloneNode(true); row.querySelector('.num').innerText = pre + (list.children.length + 1); row.querySelectorAll('input').forEach(i => i.value=''); list.appendChild(row); }
+        function addRow(id, pre) { const list = document.getElementById(id); const row = list.children[0].cloneNode(true); row.querySelector('div').innerText = pre + (list.children.length + 1); row.querySelectorAll('input').forEach(i => i.value=''); list.appendChild(row); }
 
         function validateAndCreate() {
             const caps = document.querySelectorAll('#captain-list .list-row');
@@ -182,85 +199,76 @@
             let capData = {}; let pData = [];
             caps.forEach((row, i) => { capData[i] = { name: row.querySelector('.cap-name-in').value, pts: parseInt(row.querySelector('.cap-pts-in').value), online: false }; });
             players.forEach(row => { pData.push({ name: row.querySelector('.player-name-in').value }); });
-            db.ref('rooms/' + roomID).set({ status: "WAITING", caps: capData, players: pData, curBid: 0, timer: timerMax });
-            
-            let links = `<b>주최자:</b> ${base}?room=${roomID}&auth=host<br><b>팀장 링크:</b><br>`;
-            Object.values(capData).forEach((c, i) => { links += `${c.name}: ${base}?room=${roomID}&auth=cap&t=${i}&name=${encodeURIComponent(c.name)}<br>`; });
-            document.getElementById('link-res-box').innerHTML = links;
-            document.getElementById('modal-overlay').style.display = 'flex';
+
+            db.ref('rooms/' + roomID).set({ status: "WAITING", caps: capData, players: pData, curBid: 0, timer: timerMax }).then(() => {
+                let links = `<div style="font-weight:700; color:#fff;">👑 주최자 링크</div>` + makeLinkRow("주최자", `${base}?room=${roomID}&auth=host`);
+                links += `<div style="font-weight:700; color:#fff; margin-top:15px;">⚔️ 팀장 링크</div>`;
+                Object.values(capData).forEach((c, i) => {
+                    const url = `${base}?room=${roomID}&auth=cap&t=${i}&name=${encodeURIComponent(c.name)}`;
+                    links += makeLinkRow(c.name, url);
+                });
+                document.getElementById('link-res-box').innerHTML = links;
+                document.getElementById('modal-overlay').style.display = 'flex';
+            });
         }
+
+        function makeLinkRow(label, url) {
+            return `<div class="link-box"><div class="link-text" id="url-${label}">${url}</div><button class="copy-btn" onclick="copyUrl('url-${label}')">복사</button></div>`;
+        }
+
+        function copyUrl(id) { const text = document.getElementById(id).innerText; navigator.clipboard.writeText(text).then(() => alert("복사되었습니다!")); }
 
         function syncEngine() {
             const params = new URLSearchParams(window.location.search);
-            roomID = params.get('room'); auth = params.get('auth'); myName = params.get('name'); tIdx = params.get('t');
-            if(auth === 'host') document.getElementById('host-start-ctrl').style.display = 'block';
+            roomID = params.get('room'); myAuth = params.get('auth'); myName = params.get('name'); tIdx = params.get('t');
+            if(myAuth === 'host') document.getElementById('host-start-btn').style.display = 'inline-block';
 
             db.ref('rooms/' + roomID).on('value', snap => {
-                const data = snap.val(); if(!data) return;
-
-                // [요청 2] 주최자 시작 전 대기 화면 처리
-                if(data.status === "WAITING") {
-                    document.getElementById('global-wait-ui').style.display = 'block';
-                    document.getElementById('main-auction-ui').style.display = 'none';
-                } else {
+                const data = snap.val(); if(!data) { alert("만료된 세션입니다."); location.href = window.location.origin; return; }
+                if(data.status === "WAITING") { document.getElementById('global-wait-ui').style.display = 'block'; document.getElementById('main-bid-ui').style.display = 'none'; }
+                else {
                     document.getElementById('global-wait-ui').style.display = 'none';
-                    document.getElementById('main-auction-ui').style.display = 'flex';
-                    
-                    // [요청 3] 매끄러운 타이머 및 전광판 동기화
-                    document.getElementById('board-p-name').innerText = data.curP || "선수 선택 대기";
+                    document.getElementById('main-bid-ui').style.display = 'flex';
+                    document.getElementById('board-p-name').innerText = data.curP || "선수 선택 중";
                     document.getElementById('board-price').innerText = data.curBid + "p";
                     document.getElementById('board-winner').innerText = data.winner || "없음";
-                    document.getElementById('timer-text').innerText = (data.timer / 10).toFixed(1) + "초";
+                    document.getElementById('timer-text').innerText = (data.timer / 10).toFixed(1) + "s";
                     document.getElementById('timer-bar').style.width = (data.timer / timerMax * 100) + "%";
 
-                    if(auth === 'cap') {
-                        document.getElementById('cap-bid-ui').style.display = 'block';
-                        document.getElementById('my-pts').innerText = data.caps[tIdx].pts + "p";
-                    }
-                    if(auth === 'host') {
-                        document.getElementById('host-bid-ui').style.display = 'block';
-                        if(!document.getElementById('player-selector-btns').innerHTML) {
+                    if(myAuth === 'cap') { document.getElementById('cap-bid-ctrl').style.display = 'block'; document.getElementById('my-pts').innerText = data.caps[tIdx].pts + "p"; }
+                    if(myAuth === 'host') {
+                        document.getElementById('host-bid-ctrl').style.display = 'block';
+                        if(!document.getElementById('p-selector').innerHTML) {
                             data.players.forEach(p => {
-                                const b = document.createElement('button'); b.innerText = p.name; b.className="btn-item active"; b.style.width="auto"; b.style.padding="10px 15px";
-                                b.onclick = () => db.ref(`rooms/${roomID}`).update({ curP: p.name, curBid: 50, timer: timerMax, alreadySold: false });
-                                document.getElementById('player-selector-btns').appendChild(b);
+                                const b = document.createElement('button'); b.innerText = p.name; b.className="btn-item active"; b.style="width:auto; padding:8px 15px; margin:2px;";
+                                b.onclick = () => db.ref(`rooms/${roomID}`).update({ curP: p.name, curBid: 50, timer: timerMax, sold: false });
+                                document.getElementById('p-selector').appendChild(b);
                             });
                         }
                     }
-
-                    // [요청 1] 포인트 자동 소진 및 낙찰 처리
-                    if(data.timer === 0 && data.curP && !data.alreadySold && auth === 'host') {
-                        db.ref(`rooms/${roomID}`).update({ alreadySold: true });
+                    // 포인트 자동 차감 낙찰 로직
+                    if(data.timer === 0 && data.curP && !data.sold && myAuth === 'host') {
+                        db.ref(`rooms/${roomID}`).update({ sold: true });
                         const winIdx = Object.keys(data.caps).find(k => data.caps[k].name === data.winner);
-                        if(winIdx) {
-                            const newPts = data.caps[winIdx].pts - data.curBid;
-                            db.ref(`rooms/${roomID}/caps/${winIdx}`).update({ pts: newPts });
-                            db.ref(`rooms/${roomID}/logs`).push({ u: "SYSTEM", a: `낙찰 완료! ${data.winner}님 남은 포인트: ${newPts}p` });
-                        }
+                        if(winIdx) db.ref(`rooms/${roomID}/caps/${winIdx}`).update({ pts: data.caps[winIdx].pts - data.curBid });
+                        document.getElementById('sound-success').play();
+                        alert(`${data.winner}님 낙찰!`);
                     }
                 }
-
-                // [요청 5] 실시간 입찰 로그 업데이트
-                const logs = document.getElementById('log-list-content'); logs.innerHTML = "";
-                if(data.logs) Object.values(data.logs).reverse().forEach(l => logs.innerHTML += `<div class="log-item"><b>${l.u}</b>: ${l.a}</div>`);
             });
-            if(auth === 'host') setInterval(() => { db.ref(`rooms/${roomID}/timer`).transaction(t => (t > 0 ? t - 1 : 0)); }, 100);
+            if(myAuth === 'host') setInterval(() => { db.ref(`rooms/${roomID}/timer`).transaction(t => (t > 0 ? t - 1 : 0)); }, 100);
         }
 
-        function activateIntro() { db.ref('rooms/'+roomID).update({ status: "LIVE" }); }
+        function activateAuction() { db.ref('rooms/'+roomID).update({ status: "LIVE" }); }
         function adjBid(v) { document.getElementById('bid-input-val').value = parseInt(document.getElementById('bid-input-val').value) + v; }
-        
-        // [요청 3] 입찰 시 타이머 리셋
         function placeBid() {
             const amt = parseInt(document.getElementById('bid-input-val').value);
-            db.ref('rooms/'+roomID).update({ curBid: amt, timer: timerMax, winner: myName, alreadySold: false });
-            db.ref('rooms/'+roomID+'/logs').push({ u: myName, a: `${amt}p 입찰!` });
+            db.ref('rooms/'+roomID).update({ curBid: amt, timer: timerMax, winner: myName, sold: false });
             document.getElementById('sound-success').play();
         }
-
-        function killSession() { if(confirm("종료하시겠습니까?")) db.ref('rooms/' + roomID).remove(); }
-        function enterAuctionHost() { window.location.href = document.getElementById('link-res-box').innerHTML.split('?')[0].split(': ')[1] + "?" + document.getElementById('link-res-box').innerHTML.split('?')[1].split('<br>')[0]; }
-        window.onload = () => { if(window.location.search.includes('room')) navigateTo('auction'); }
+        function enterHost() { window.location.href = document.getElementById('url-주최자').innerText; }
+        function killSession() { if(confirm("종료하시겠습니까?")) db.ref('rooms/'+roomID).remove(); }
+        window.onload = () => { if(window.location.search.includes('room')) { nextSection('auction'); syncEngine(); } };
     </script>
 </body>
 </html>
