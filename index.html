@@ -3,154 +3,186 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>롤블리 경매 - LIVE SYSTEM</title>
+    <title>LOLVELY AUCTION</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
         :root {
-            --bg-black: #000000; --card-gray: rgba(28, 28, 30, 0.7); --input-gray: #2c2c2e;
-            --apple-blue: #0071e3; --apple-gold: #ffd60a; --apple-red: #ff453a;
-            --text-main: #f5f5f7; --text-sub: #86868b;
-            --apple-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Apple SD Gothic Neo", "Pretendard", sans-serif;
+            --bg: #000000; --card: #1c1c1e; --input: #2c2c2e;
+            --blue: #0A84FF; --green: #30D158; --red: #FF453A; --gold: #FFD60A;
+            --text: #FFFFFF; --sub: #8E8E93;
+            --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Pretendard", sans-serif;
         }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); overflow: hidden; user-select: none; }
+        
+        .hidden { display: none !important; }
+        
+        /* 화면 관리 (기본적으로 모두 숨김) */
+        .app-view { 
+            display: none; 
+            width: 100%; height: 100vh; 
+            flex-direction: column; align-items: center; justify-content: center; 
+            position: absolute; top: 0; left: 0; 
+            background: #000; z-index: 1; opacity: 0; transition: opacity 0.3s; 
+        }
+        /* 활성화된 화면만 보임 */
+        .app-view.active { display: flex; z-index: 10; opacity: 1; }
 
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; font-family: var(--apple-font); background-color: var(--bg-black); color: var(--text-main); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
-        h1, h2, h3, button, input { font-family: var(--apple-font) !important; }
+        /* 로딩 화면 (기본 활성화) */
+        #v-loading { z-index: 9999; }
 
-        /* 매끄러운 화면 전환 애니메이션 */
-        .section-view { display: none; width: 100%; min-height: 100vh; flex-direction: column; align-items: center; opacity: 0; transition: opacity 0.5s ease-in-out; }
-        .section-view.active { display: flex; opacity: 1; }
+        .apple-card { background: var(--card); border-radius: 24px; padding: 30px; width: 90%; max-width: 650px; text-align: center; border: 1px solid #333; box-shadow: 0 20px 50px rgba(0,0,0,0.7); position: relative; transition: all 0.3s; }
+        .apple-card.win { border: 2px solid var(--green); box-shadow: 0 0 30px rgba(48, 209, 88, 0.2); }
+        .apple-card.lose { border: 2px solid var(--red); box-shadow: 0 0 30px rgba(255, 69, 58, 0.2); }
 
-        /* --- 01. 네비게이션 (뒤로가기 버튼 복구) --- */
-        .nav-bar { position: sticky; top: 0; width: 100%; height: 50px; background: rgba(0,0,0,0.7); backdrop-filter: saturate(180%) blur(20px); display: grid; grid-template-columns: 120px 1fr 120px; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.08); z-index: 1000; }
-        .nav-back { padding-left: 20px; color: var(--apple-blue); cursor: pointer; font-size: 14px; font-weight: 600; }
-        .made-by { text-align: center; font-size: 11px; color: #555; letter-spacing: 1.5px; font-weight: 800; text-transform: uppercase; }
+        .btn-primary { background: var(--blue); color: #fff; border: none; padding: 15px; width: 100%; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 10px; transition: 0.1s; }
+        .btn-primary:active { transform: scale(0.98); opacity: 0.9; }
+        .btn-primary:disabled { background: #333; color: #666; cursor: not-allowed; }
 
-        /* --- 02. 메인 랜딩 (사용자 디자인 보존) --- */
-        .bg-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at 50% 50%, #1a1a1c 0%, #000000 100%); z-index: -1; }
-        .hero-container { text-align: center; max-width: 1200px; padding: 20px; z-index: 10; margin-top: 15vh; }
-        .main-title { font-size: 84px; font-weight: 800; margin: 0; letter-spacing: -0.04em; background: linear-gradient(180deg, #ffffff 0%, #a1a1a6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .start-btn { background-color: var(--apple-blue); color: white; border: none; padding: 18px 56px; border-radius: 980px; font-size: 20px; font-weight: 600; cursor: pointer; transition: 0.3s; margin-top: 50px; }
+        input { background: #2c2c2e; border: 1px solid #444; padding: 10px; border-radius: 8px; color: #fff; width: 100%; font-size: 14px; box-sizing: border-box; text-align: center; outline: none; }
+        
+        .grid-row { display: grid; grid-template-columns: 30px 1.5fr 2.5fr 1.5fr 0.8fr; gap: 6px; margin-bottom: 8px; align-items: center; }
+        .btn-group { display: flex; background: #000; border-radius: 6px; padding: 2px; }
+        .btn-opt { flex: 1; background: transparent; border: none; color: #555; padding: 6px 0; font-size: 10px; font-weight: 700; cursor: pointer; border-radius: 4px; }
+        .btn-opt.active { background: #333; color: #fff; }
 
-        /* --- 03. 설정 페이지 (5열 그리드 완벽 고정) --- */
-        .setup-container { width: 95%; max-width: 1100px; padding-bottom: 150px; margin-top: 50px; }
-        .setup-card { background: var(--card-gray); backdrop-filter: blur(20px); border-radius: 24px; padding: 40px; margin-bottom: 30px; border: 1px solid rgba(255, 255, 255, 0.1); }
-        .list-row { display: grid; grid-template-columns: 45px 1.2fr 2.8fr 1.8fr 0.8fr; gap: 15px; align-items: center; background: rgba(255,255,255,0.03); padding: 15px 20px; border-radius: 16px; margin-bottom: 12px; }
-        .btn-group { display: flex; background: #000; border-radius: 10px; padding: 3px; gap: 2px; }
-        .btn-item { flex: 1; padding: 9px 0; border: none; background: none; color: #86868b; font-size: 10px; font-weight: 700; cursor: pointer; border-radius: 7px; transition: 0.2s; white-space: nowrap; }
-        .btn-item.active { background: #3a3a3c; color: white; }
-        input { background: #1c1c1e; border: 1px solid #3a3a3c; border-radius: 12px; padding: 14px; color: white; font-size: 15px; outline: none; width: 100%; box-sizing: border-box; }
+        .timer-big { font-size: 100px; font-weight: 800; line-height: 1; margin: 15px 0; font-variant-numeric: tabular-nums; letter-spacing: -3px; }
+        .progress-bar { width: 100%; height: 8px; background: #333; border-radius: 10px; overflow: hidden; margin: 20px 0; }
+        .progress-fill { height: 100%; background: var(--blue); width: 100%; transition: width 0.1s linear; }
+        .price-tag { font-size: 72px; font-weight: 700; color: var(--gold); margin: 0; letter-spacing: -2px; }
+        .status-badge { display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 13px; font-weight: 700; margin-bottom: 10px; background: #333; color: #aaa; }
+        
+        .live-log-box { height: 130px; overflow-y: auto; background: rgba(0,0,0,0.5); border-radius: 12px; padding: 12px; margin-top: 20px; text-align: left; border: 1px solid #444; display: flex; flex-direction: column-reverse; }
+        .log-entry { font-size: 13px; color: #eee; margin-bottom: 6px; border-left: 3px solid var(--blue); padding-left: 10px; }
+        .log-entry span { color: var(--gold); font-weight: 700; }
 
-        /* --- 04. 경매 시스템 UI (중앙 정렬 및 Apple 감성) --- */
-        .auction-screen { width: 100%; min-height: 100vh; display: flex; align-items: center; justify-content: center; position: relative; }
-        .bid-card { background: var(--card-gray); backdrop-filter: blur(40px); border-radius: 38px; padding: 60px; width: 90%; max-width: 650px; text-align: center; border: 1px solid rgba(255, 255, 255, 0.12); }
-        .timer-progress-wrap { width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 100px; margin: 30px 0; overflow: hidden; }
-        .timer-progress-fill { height: 100%; background: var(--apple-blue); width: 100%; transition: width 0.1s linear; }
-        .current-price-val { font-size: 88px; font-weight: 700; color: var(--apple-gold); margin: 10px 0; letter-spacing: -3px; }
+        .result-container { width: 90%; max-width: 1000px; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; }
+        .result-card { background: #1c1c1e; padding: 20px; border-radius: 16px; border: 1px solid #333; text-align: left; }
+        .result-head { display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 10px; font-weight: 700; color: var(--gold); }
+        .roster-item { display: flex; justify-content: space-between; font-size: 13px; color: #ccc; margin-bottom: 5px; }
 
-        /* 모달 및 복사 버튼 */
-        .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); backdrop-filter: blur(20px); display:none; justify-content:center; align-items:center; z-index:2000; }
-        .modal-card { background: #1c1c1e; border-radius:30px; padding:40px; width:90%; max-width:550px; text-align:center; border: 1px solid rgba(255,255,255,0.1); }
-        .link-box { background:#000; padding:12px; border-radius:12px; border:1px solid #333; margin-bottom:10px; display:flex; align-items:center; gap:10px; }
-        .link-text { color: var(--apple-blue); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; text-align: left; }
-        .copy-btn { background: #333; color: #fff; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; cursor: pointer; }
+        .modal { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.95); z-index: 9999; display: none; justify-content: center; align-items: center; }
+        .copy-row { display: flex; justify-content: space-between; background: #000; padding: 12px; margin-bottom: 8px; border-radius: 8px; border: 1px solid #333; align-items: center; font-size: 12px; }
     </style>
 </head>
 <body>
 
-    <audio id="sound-success" src="https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3"></audio>
-
-    <div class="nav-bar">
-        <div class="nav-back" id="nav-back-btn" style="visibility:hidden;" onclick="handleBack()">&lt; 뒤로가기</div>
-        <div class="made-by">Gamza ⓒ Lolvely</div>
-        <div></div>
+    <div id="v-loading" class="app-view active" style="z-index: 5000;">
+        <div style="font-size:24px; font-weight:700;">CONNECTING...</div>
+        <button id="btn-reload" class="btn-primary" style="width:auto; margin-top:20px; display:none;" onclick="location.reload()">새로고침</button>
     </div>
 
-    <div id="view-main" class="section-view active">
-        <div class="bg-canvas"></div>
-        <div class="hero-container">
-            <h1 class="main-title">롤블리 경매</h1>
-            <button class="start-btn" onclick="nextSection('setup')">경매 준비 시작</button>
-        </div>
-    </div>
-
-    <div id="view-setup" class="section-view">
-        <div class="setup-container">
-            <section class="setup-card">
-                <h3>01. 팀장 설정 (1:4 규칙)</h3>
-                <div id="captain-list">
-                    <div class="list-row">
-                        <div style="color: #86868b; font-weight: 700;">C1</div>
-                        <input type="text" placeholder="성함" class="cap-name-in">
-                        <div class="btn-group">
-                            <button class="btn-item" onclick="toggleActive(this)">I</button><button class="btn-item active" onclick="toggleActive(this)">S</button><button class="btn-item" onclick="toggleActive(this)">G</button><button class="btn-item" onclick="toggleActive(this)">P</button><button class="btn-item" onclick="toggleActive(this)">D</button>
-                        </div>
-                        <div class="btn-group">
-                            <button class="btn-item active" onclick="toggleActive(this)">TOP</button><button class="btn-item" onclick="toggleActive(this)">MID</button>
-                        </div>
-                        <input type="number" value="1000" class="cap-pts-in">
-                    </div>
+    <div id="v-setup" class="app-view">
+        <div class="apple-card" style="max-width:1000px; padding:30px;">
+            <h1 style="margin-bottom:30px;">AUCTION SETUP</h1>
+            <div style="display:flex; gap:20px; text-align:left;">
+                <div style="flex:1;">
+                    <h3 style="color:var(--blue)">01. 팀장 (1:4 비율)</h3>
+                    <div id="list-cap"></div>
+                    <button onclick="addCap()" style="background:#333; border:none; color:#ccc; padding:10px; width:100%; border-radius:10px; margin-top:5px; cursor:pointer;">+ 추가</button>
                 </div>
-                <button style="background:none; border:1px solid #333; color:#fff; padding:10px 20px; border-radius:10px; cursor:pointer; margin-top:10px;" onclick="addRow('captain-list', 'C')">+ 팀장 추가</button>
-            </section>
-            <section class="setup-card">
-                <h3>02. 선수 명단</h3>
-                <div id="player-list">
-                    <div class="list-row">
-                        <div style="color: #86868b; font-weight: 700;">1</div>
-                        <input type="text" placeholder="성함" class="player-name-in">
-                        <div class="btn-group"><button class="btn-item active" onclick="toggleActive(this)">G</button><button class="btn-item" onclick="toggleActive(this)">P</button></div>
-                        <div class="btn-group"><button class="btn-item active" onclick="toggleActive(this)">MID</button><button class="btn-item" onclick="toggleActive(this)">ADC</button></div>
-                        <div style="width: 50px;"></div>
-                    </div>
-                </div>
-                <button style="background:none; border:1px solid #333; color:#fff; padding:10px 20px; border-radius:10px; cursor:pointer; margin-top:10px;" onclick="addRow('player-list', '')">+ 선수 추가</button>
-            </section>
-        </div>
-        <div style="position:fixed; bottom:0; width:100%; background:rgba(0,0,0,0.8); padding:20px 0; display:flex; justify-content:center; border-top:1px solid rgba(255,255,255,0.1); z-index:100;">
-            <button class="start-btn" style="margin:0; width:90%;" onclick="validateAndCreate()">🚀 경매 세션 생성 및 링크 발급</button>
-        </div>
-    </div>
-
-    <div id="view-auction" class="section-view">
-        <div class="auction-screen">
-            <div id="global-wait-ui" style="text-align:center;">
-                <h1 style="font-size:60px; font-weight:800;">경매 대기 중</h1>
-                <button class="start-btn" id="host-start-btn" style="display:none;" onclick="activateAuction()">경매 정식 시작 (주최자)</button>
-            </div>
-
-            <div id="main-bid-ui" style="display:none; width:100%; flex-direction:column; align-items:center;">
-                <div class="bid-card">
-                    <h1 id="board-p-name" style="font-size:60px; margin:0; font-weight:800;">선수 대기 중</h1>
-                    <div class="timer-progress-wrap"><div id="timer-bar" class="timer-progress-fill"></div></div>
-                    <div id="timer-text" style="font-size:48px; font-weight:800; color:var(--apple-red); margin-bottom:20px;">5.0s</div>
-                    <div class="current-price-val" id="board-price">0p</div>
-                    <p style="color:var(--text-sub);">최고 입찰자: <span id="board-winner" style="color:var(--apple-blue); font-weight:700;">없음</span></p>
-
-                    <div id="cap-bid-ctrl" style="display:none; margin-top:30px;">
-                        <p style="color:var(--text-sub);">내 남은 포인트: <b id="my-pts" style="color:var(--apple-gold);">1000p</b></p>
-                        <div style="display:flex; gap:15px; justify-content:center; align-items:center;">
-                            <button class="btn-item active" style="width:60px; height:60px; font-size:18px;" onclick="adjBid(-10)">-10</button>
-                            <input type="number" id="bid-input-val" value="50" style="background:#000; color:#fff; font-size:40px; text-align:center; width:120px; border:1px solid #333; border-radius:15px; padding:10px;" readonly>
-                            <button class="btn-item active" style="width:60px; height:60px; font-size:18px;" onclick="adjBid(10)">+10</button>
-                        </div>
-                        <button class="start-btn" style="margin-top:30px; width:100%;" onclick="placeBid()">입찰하기 (5초 리셋)</button>
-                    </div>
-
-                    <div id="host-bid-ctrl" style="display:none; margin-top:40px;">
-                        <div id="p-selector" style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-bottom:20px;"></div>
-                        <button class="start-btn" style="background:var(--apple-red); width:100%;" onclick="killSession()">세션 종료 및 파기</button>
-                    </div>
+                <div style="flex:1;">
+                    <h3 style="color:var(--blue)">02. 선수 명단</h3>
+                    <div id="list-player"></div>
+                    <button onclick="addPlayer()" style="background:#333; border:none; color:#ccc; padding:10px; width:100%; border-radius:10px; margin-top:5px; cursor:pointer;">+ 추가</button>
                 </div>
             </div>
+            <button class="btn-primary" onclick="createSession()">세션 생성 및 링크 발급</button>
         </div>
     </div>
 
-    <div id="modal-overlay" class="modal-overlay">
-        <div class="modal-card">
-            <h2>경매 링크 생성 완료</h2>
-            <div id="link-res-box" style="margin-top:25px; text-align:left;"></div>
-            <button class="start-btn" style="width:100%; margin-top:30px;" onclick="enterHost()">주최자로 입장</button>
+    <div id="v-verify" class="app-view">
+        <div class="apple-card">
+            <h2>본인 확인</h2>
+            <p style="color:var(--sub);">접속하려는 계정이 맞습니까?</p>
+            <div style="background:#000; padding:20px; border-radius:12px; margin:20px 0;">
+                <h1 id="verify-name" style="margin:0; color:var(--blue);">NAME</h1>
+            </div>
+            <button class="btn-primary" style="background:var(--green); color:#000;" onclick="confirmEntry()">입장하기</button>
+        </div>
+    </div>
+
+    <div id="v-auction" class="app-view">
+        <div class="apple-card" id="main-card">
+            <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--sub); margin-bottom:10px;">
+                <span id="txt-phase">WAITING</span>
+                <span id="txt-role">GUEST</span>
+            </div>
+
+            <div id="state-wait">
+                <h1 style="font-size:40px; margin:20px 0;">팀장 접속 대기</h1>
+                <div id="box-presence" style="display:flex; justify-content:center; gap:8px; margin-bottom:20px;"></div>
+                <p id="txt-wait-msg" style="color:var(--sub); font-size:14px;">-</p>
+                <button id="btn-host-intro" class="btn-primary hidden" onclick="setStep(1)">팀장 소개 시작 (Host)</button>
+            </div>
+
+            <div id="state-intro" class="hidden">
+                <div style="font-size:12px; font-weight:700; color:var(--blue);">CAPTAIN INFO</div>
+                <h1 id="intro-name" style="font-size:50px; margin:15px 0;">-</h1>
+                <p id="intro-pts" style="color:var(--gold); font-size:24px;">-</p>
+                <button id="btn-host-next" class="btn-primary hidden">다음</button>
+            </div>
+
+            <div id="state-shuffle" class="hidden">
+                <h1>SHUFFLING</h1>
+                <div id="shuffle-txt" style="font-size:40px; color:var(--gold); margin:30px 0;">...</div>
+            </div>
+
+            <div id="state-show-list" class="hidden">
+                <h2 style="color:var(--blue);">경매 순서 확정</h2>
+                <div id="shuffled-list-box" style="height:200px; overflow-y:auto; background:#111; padding:15px; border-radius:12px; text-align:left; margin:20px 0;"></div>
+                <button id="btn-host-start-bid" class="btn-primary hidden" onclick="startFirstBid()">첫 번째 선수 경매 시작</button>
+            </div>
+
+            <div id="state-bid" class="hidden">
+                <div id="badge-status" class="status-badge hidden">대기 중</div>
+
+                <h1 id="bid-name" style="font-size:42px; margin:0;">NAME</h1>
+                <div id="bid-info" style="color:var(--sub); margin-bottom:10px;">-</div>
+                
+                <div class="timer-big" id="bid-timer">15.0</div>
+                <div class="progress-bar"><div id="bid-progress" class="progress-fill"></div></div>
+                
+                <div style="font-size:12px; color:var(--sub);">CURRENT BID</div>
+                <div class="price-tag" id="bid-price">0</div>
+                <div id="bid-winner" style="color:var(--blue); font-weight:700; margin-top:5px;">-</div>
+
+                <div id="bid-logs" class="live-log-box"></div>
+
+                <div id="ctrl-cap" class="hidden" style="margin-top:20px; padding-top:15px; border-top:1px solid #333;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px; background:#111; padding:10px; border-radius:8px;">
+                        <span style="font-size:13px; color:#888;">내 잔여 포인트</span>
+                        <span style="font-size:18px; font-weight:800; color:var(--gold);" id="val-my-pts">0 P</span>
+                    </div>
+                    <div style="display:flex; gap:5px; margin-bottom:8px;">
+                        <button onclick="doBid(5)" class="btn-primary" style="margin:0; background:#333; flex:1;">+5</button>
+                        <button onclick="doBid(10)" class="btn-primary" style="margin:0; flex:2;">입찰 (+10)</button>
+                        <button onclick="doBid(50)" class="btn-primary" style="margin:0; background:#333; flex:1;">+50</button>
+                    </div>
+                    <div style="display:flex; gap:5px;">
+                        <input type="number" id="inp-custom" placeholder="금액 입력" style="flex:2;">
+                        <button onclick="doCustomBid()" class="btn-primary" style="margin:0; flex:1; background:var(--gold); color:#000;">직접 입찰</button>
+                    </div>
+                </div>
+
+                <div id="ctrl-host" class="hidden">
+                    <button class="btn-primary" style="background:#333;" onclick="nextPlayer()">다음 선수 진행 >></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="v-result" class="app-view">
+        <h1 style="margin-bottom:30px;">🏆 최종 팀 구성 결과</h1>
+        <div id="result-list" class="result-container"></div>
+        <button class="btn-primary" style="width:200px; margin-top:40px;" onclick="location.href=window.location.origin+window.location.pathname">처음으로</button>
+    </div>
+
+    <div id="modal-link" class="modal">
+        <div class="apple-card" style="width:500px;">
+            <h2>🔗 링크 생성 완료</h2>
+            <div id="link-box" style="margin:20px 0;"></div>
+            <button class="btn-primary" onclick="goHost()">주최자 입장</button>
         </div>
     </div>
 
@@ -167,108 +199,234 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        let roomID = ""; let myAuth = ""; let myName = ""; let tIdx = 0; let timerMax = 50;
+        let roomID=null, myAuth=null, myIdx=null;
 
-        function nextSection(id) {
-            const current = document.querySelector('.section-view.active');
-            current.style.opacity = '0';
-            setTimeout(() => {
-                current.classList.remove('active');
-                const next = document.getElementById('view-' + id);
-                next.classList.add('active');
-                document.getElementById('nav-back-btn').style.visibility = (id === 'main') ? 'hidden' : 'visible';
-                setTimeout(() => { next.style.opacity = '1'; }, 50);
-            }, 500);
-        }
+        // 1. 접속 로직 (안전장치)
+        window.onload = () => {
+            const p = new URLSearchParams(window.location.search);
+            roomID = p.get('room'); myAuth = p.get('auth'); myIdx = p.get('idx');
 
-        function handleBack() {
-            const activeId = document.querySelector('.section-view.active').id;
-            if(activeId === 'view-setup') nextSection('main');
-            else if(activeId === 'view-auction' && confirm("경매장을 나가시겠습니까?")) nextSection('setup');
-        }
+            if(roomID) {
+                // 로딩이 너무 길어지면 새로고침 버튼 표시
+                setTimeout(() => document.getElementById('btn-reload').style.display='block', 5000);
 
-        function toggleActive(b) { b.parentElement.querySelectorAll('button').forEach(btn => btn.classList.remove('active')); b.classList.add('active'); }
-        function addRow(id, pre) { const list = document.getElementById(id); const row = list.children[0].cloneNode(true); row.querySelector('div').innerText = pre + (list.children.length + 1); row.querySelectorAll('input').forEach(i => i.value=''); list.appendChild(row); }
-
-        function validateAndCreate() {
-            const caps = document.querySelectorAll('#captain-list .list-row');
-            const players = document.querySelectorAll('#player-list .list-row');
-            if (players.length !== caps.length * 4) { alert("인원수 규칙 위반! 팀장 1명당 선수 4명이 필요합니다."); return; }
-            roomID = "room_" + Date.now();
-            const base = window.location.href.split('?')[0];
-            let capData = {}; let pData = [];
-            caps.forEach((row, i) => { capData[i] = { name: row.querySelector('.cap-name-in').value, pts: parseInt(row.querySelector('.cap-pts-in').value), online: false }; });
-            players.forEach(row => { pData.push({ name: row.querySelector('.player-name-in').value }); });
-
-            db.ref('rooms/' + roomID).set({ status: "WAITING", caps: capData, players: pData, curBid: 0, timer: timerMax }).then(() => {
-                let links = `<div style="font-weight:700; color:#fff;">👑 주최자 링크</div>` + makeLinkRow("주최자", `${base}?room=${roomID}&auth=host`);
-                links += `<div style="font-weight:700; color:#fff; margin-top:15px;">⚔️ 팀장 링크</div>`;
-                Object.values(capData).forEach((c, i) => {
-                    const url = `${base}?room=${roomID}&auth=cap&t=${i}&name=${encodeURIComponent(c.name)}`;
-                    links += makeLinkRow(c.name, url);
+                db.ref('rooms/'+roomID).once('value', s => {
+                    if(s.exists()) {
+                        if(myAuth==='CAP') checkIdentity(); 
+                        else initAuction();
+                    } else {
+                        alert("존재하지 않거나 만료된 방입니다.");
+                        window.location.href = window.location.origin + window.location.pathname;
+                    }
+                }).catch(e => {
+                    alert("데이터 로딩 실패: " + e.message);
                 });
-                document.getElementById('link-res-box').innerHTML = links;
-                document.getElementById('modal-overlay').style.display = 'flex';
+            } else {
+                switchView('v-setup');
+                initSetup();
+            }
+        };
+
+        function switchView(id) {
+            document.querySelectorAll('.app-view').forEach(e => {
+                e.classList.remove('active');
+                if(e.id !== id) setTimeout(()=>e.style.display='none', 300);
+            });
+            const t = document.getElementById(id);
+            t.style.display='flex';
+            setTimeout(()=>t.classList.add('active'), 10);
+        }
+
+        // Setup Logic
+        function initSetup() { addCap(); addCap(); for(let i=0;i<8;i++) addPlayer(); }
+        function mkBtns(t) { return `<div class="btn-group">${(t==='T'?['I','B','S','G','E','P','D','M','GM','C']:['TOP','JGL','MID','ADC','SUP']).map(x=>`<button class="btn-opt" onclick="this.parentNode.querySelectorAll('.btn-opt').forEach(e=>e.classList.remove('active'));this.classList.add('active')">${x}</button>`).join('')}</div>`; }
+        function addCap() { document.getElementById('list-cap').insertAdjacentHTML('beforeend', `<div class="grid-row item-cap"><span>C</span><input type="text" class="i-n" placeholder="이름">${mkBtns('T')}${mkBtns('L')}<input type="number" class="i-p" value="1000"></div>`); }
+        function addPlayer() { document.getElementById('list-player').insertAdjacentHTML('beforeend', `<div class="grid-row item-pl"><span>P</span><input type="text" class="i-n" placeholder="이름">${mkBtns('T')}${mkBtns('L')}<span></span></div>`); }
+
+        function createSession() {
+            const caps=[], players=[];
+            document.querySelectorAll('.item-cap').forEach(e => caps.push({ name:e.querySelector('.i-n').value, pts:parseInt(e.querySelector('.i-p').value)||1000, online:false, roster:[] }));
+            document.querySelectorAll('.item-pl').forEach(e => players.push({ name:e.querySelector('.i-n').value, tier:e.querySelectorAll('.btn-group')[0].querySelector('.active')?.innerText||'-', lane:e.querySelectorAll('.btn-group')[1].querySelector('.active')?.innerText||'-' }));
+
+            if(players.length !== caps.length*4) { if(!confirm(`선수 부족(${players.length}/${caps.length*4}). 생성?`)) return; }
+
+            roomID = "room_" + Date.now();
+            db.ref('rooms/'+roomID).set({ step:0, caps, players, curP:null, curBid:0, timer:150, logs:[] });
+
+            const base = window.location.origin + window.location.pathname;
+            const hUrl = `${base}?room=${roomID}&auth=HOST`;
+            let h = mkLink("👑 주최자", hUrl);
+            caps.forEach((c,i) => h += mkLink(`⚔️ ${c.name}`, `${base}?room=${roomID}&auth=CAP&idx=${i}`));
+            document.getElementById('link-box').innerHTML = h;
+            document.getElementById('modal-link').style.display='flex';
+            document.getElementById('modal-link').dataset.url = hUrl;
+        }
+        function mkLink(n, u) { return `<div class="copy-row"><span>${n}</span><button class="btn-primary" style="width:auto;margin:0;padding:5px 10px;font-size:11px;" onclick="navigator.clipboard.writeText('${u}');alert('복사됨')">복사</button></div>`; }
+        function goHost() { location.href = document.getElementById('modal-link').dataset.url; }
+
+        // Verify Logic
+        function checkIdentity() {
+            db.ref(`rooms/${roomID}/caps/${myIdx}`).once('value', s => {
+                if(!s.exists()) { alert("잘못된 접근"); return; }
+                document.getElementById('verify-name').innerText = s.val().name;
+                switchView('v-verify');
             });
         }
+        function confirmEntry() { switchView('v-loading'); initAuction(); }
 
-        function makeLinkRow(label, url) {
-            return `<div class="link-box"><div class="link-text" id="url-${label}">${url}</div><button class="copy-btn" onclick="copyUrl('url-${label}')">복사</button></div>`;
+        // Auction Logic
+        function initAuction() {
+            switchView('v-auction');
+            if(myAuth==='HOST') {
+                document.getElementById('txt-role').innerText = "HOST";
+                document.getElementById('btn-host-intro').classList.remove('hidden');
+                document.getElementById('btn-host-next').classList.remove('hidden');
+                document.getElementById('btn-host-start-bid').classList.remove('hidden');
+                document.getElementById('ctrl-host').classList.remove('hidden');
+                setInterval(hostTimer, 100);
+            } else {
+                document.getElementById('txt-role').innerText = "CAPTAIN";
+                document.getElementById('ctrl-cap').classList.remove('hidden');
+                document.getElementById('badge-status').classList.remove('hidden');
+                db.ref(`rooms/${roomID}/caps/${myIdx}`).update({online:true});
+                db.ref(`rooms/${roomID}/caps/${myIdx}`).onDisconnect().update({online:false});
+            }
+            db.ref('rooms/'+roomID).on('value', snap => render(snap.val()));
         }
 
-        function copyUrl(id) { const text = document.getElementById(id).innerText; navigator.clipboard.writeText(text).then(() => alert("복사되었습니다!")); }
+        function render(d) {
+            if(!d) return;
+            
+            // Wait & Presence
+            let on=0; let ph='';
+            d.caps.forEach(c=>{ if(c.online)on++; ph+=`<div style="width:10px;height:10px;border-radius:50%;background:${c.online?'#30D158':'#333'}"></div>`; });
+            document.getElementById('box-presence').innerHTML = ph;
+            if(myAuth==='HOST') {
+                document.getElementById('btn-host-intro').disabled = false;
+                document.getElementById('txt-wait-msg').innerText = `접속: ${on}/${d.caps.length}`;
+            }
 
-        function syncEngine() {
-            const params = new URLSearchParams(window.location.search);
-            roomID = params.get('room'); myAuth = params.get('auth'); myName = params.get('name'); tIdx = params.get('t');
-            if(myAuth === 'host') document.getElementById('host-start-btn').style.display = 'inline-block';
-
-            db.ref('rooms/' + roomID).on('value', snap => {
-                const data = snap.val(); if(!data) { alert("만료된 세션입니다."); location.href = window.location.origin; return; }
-                if(data.status === "WAITING") { document.getElementById('global-wait-ui').style.display = 'block'; document.getElementById('main-bid-ui').style.display = 'none'; }
-                else {
-                    document.getElementById('global-wait-ui').style.display = 'none';
-                    document.getElementById('main-bid-ui').style.display = 'flex';
-                    document.getElementById('board-p-name').innerText = data.curP || "선수 선택 중";
-                    document.getElementById('board-price').innerText = data.curBid + "p";
-                    document.getElementById('board-winner').innerText = data.winner || "없음";
-                    document.getElementById('timer-text').innerText = (data.timer / 10).toFixed(1) + "s";
-                    document.getElementById('timer-bar').style.width = (data.timer / timerMax * 100) + "%";
-
-                    if(myAuth === 'cap') { document.getElementById('cap-bid-ctrl').style.display = 'block'; document.getElementById('my-pts').innerText = data.caps[tIdx].pts + "p"; }
-                    if(myAuth === 'host') {
-                        document.getElementById('host-bid-ctrl').style.display = 'block';
-                        if(!document.getElementById('p-selector').innerHTML) {
-                            data.players.forEach(p => {
-                                const b = document.createElement('button'); b.innerText = p.name; b.className="btn-item active"; b.style="width:auto; padding:8px 15px; margin:2px;";
-                                b.onclick = () => db.ref(`rooms/${roomID}`).update({ curP: p.name, curBid: 50, timer: timerMax, sold: false });
-                                document.getElementById('p-selector').appendChild(b);
-                            });
-                        }
+            // Cap Info
+            if(myAuth==='CAP') {
+                const me = d.caps[myIdx];
+                document.getElementById('val-my-pts').innerText = me.pts + " P";
+                
+                const card = document.getElementById('main-card');
+                const badge = document.getElementById('badge-status');
+                
+                if(d.step>=100 && d.step<200 && d.curP) {
+                    if(d.winner===me.name) { 
+                        card.className="apple-card win"; badge.innerText="🟢 최고 입찰 중"; badge.style.background="#30D158"; badge.style.color="#000";
+                    } else if(d.curBid>0) { 
+                        card.className="apple-card lose"; badge.innerText="🔴 입찰 밀림"; badge.style.background="#FF453A"; badge.style.color="#000";
+                    } else { 
+                        card.className="apple-card"; badge.innerText="⚪️ 입찰 대기"; badge.style.background="#333"; badge.style.color="#aaa";
                     }
-                    // 포인트 자동 차감 낙찰 로직
-                    if(data.timer === 0 && data.curP && !data.sold && myAuth === 'host') {
-                        db.ref(`rooms/${roomID}`).update({ sold: true });
-                        const winIdx = Object.keys(data.caps).find(k => data.caps[k].name === data.winner);
-                        if(winIdx) db.ref(`rooms/${roomID}/caps/${winIdx}`).update({ pts: data.caps[winIdx].pts - data.curBid });
-                        document.getElementById('sound-success').play();
-                        alert(`${data.winner}님 낙찰!`);
-                    }
+                } else card.className="apple-card";
+            }
+
+            // State Switch
+            ['wait','intro','shuffle','show-list','bid'].forEach(s=>document.getElementById(`state-${s}`).classList.add('hidden'));
+            
+            if(d.step===0) {
+                document.getElementById('state-wait').classList.remove('hidden');
+                document.getElementById('txt-phase').innerText = "WAITING";
+            }
+            else if(d.step<=d.caps.length) { // INTRO
+                document.getElementById('state-intro').classList.remove('hidden');
+                document.getElementById('txt-phase').innerText = "INTRO";
+                document.getElementById('intro-name').innerText = d.caps[d.step-1].name;
+                document.getElementById('intro-pts').innerText = d.caps[d.step-1].pts + " P";
+                if(myAuth==='HOST') {
+                    const btn = document.getElementById('btn-host-next');
+                    btn.innerText = (d.step===d.caps.length)?"셔플 시작":"다음 팀장";
+                    btn.onclick = ()=>(d.step===d.caps.length)?startShuffle(d.players):setStep(d.step+1);
+                }
+            }
+            else if(d.step===98) { // SHUFFLE
+                document.getElementById('state-shuffle').classList.remove('hidden');
+                if(d.players) document.getElementById('shuffle-txt').innerText = d.players[Math.floor(Math.random()*d.players.length)].name;
+            }
+            else if(d.step===99) { // LIST
+                document.getElementById('state-show-list').classList.remove('hidden');
+                const q = d.queue || [];
+                document.getElementById('shuffled-list-box').innerHTML = q.map((p,i)=>`<div style="font-size:13px;padding:5px;color:#ccc;border-bottom:1px solid #222;">${i+1}. ${p.name}</div>`).join('');
+            }
+            else if(d.step>=100) { // BID
+                if(d.step === 200 || !d.curP) { // RESULT
+                    switchView('v-result');
+                    let h=''; 
+                    d.caps.forEach(c=>{
+                        let r = (c.roster||[]).map(m=>`<div class="roster-item"><span>${m.name}</span><span>${m.bid}p</span></div>`).join('');
+                        h+=`<div class="result-card"><div class="result-head"><span>${c.name}</span><span>${c.pts}p</span></div>${r||'<div style="color:#666;font-size:13px;">영입 없음</div>'}</div>`;
+                    });
+                    document.getElementById('result-list').innerHTML=h;
+                    return;
+                }
+                
+                document.getElementById('state-bid').classList.remove('hidden');
+                document.getElementById('txt-phase').innerText = "AUCTION";
+                document.getElementById('bid-name').innerText = d.curP.name;
+                document.getElementById('bid-info').innerText = `${d.curP.tier} • ${d.curP.lane}`;
+                document.getElementById('bid-price').innerText = d.curBid;
+                document.getElementById('bid-winner').innerText = d.winner==="None"?"입찰 대기":`${d.winner}님 최고가`;
+                document.getElementById('bid-timer').innerText = (d.timer/10).toFixed(1);
+                document.getElementById('bid-progress').style.width = (d.timer/150*100)+"%";
+                
+                let lh=''; if(d.logs) Object.values(d.logs).reverse().forEach(l=>lh+=`<div class="log-entry">${l}</div>`);
+                document.getElementById('bid-logs').innerHTML = lh;
+            }
+        }
+
+        // --- Logic Functions ---
+        function setStep(n) { db.ref('rooms/'+roomID).update({step:n}); }
+        function startShuffle(p) { 
+            db.ref('rooms/'+roomID).update({step:98}); 
+            const q = [...p].sort(()=>Math.random()-0.5);
+            setTimeout(() => { db.ref('rooms/'+roomID).update({step:99, queue:q}); }, 3000);
+        }
+        function startFirstBid() { nextPlayer(); }
+        function nextPlayer() {
+            db.ref('rooms/'+roomID).once('value', s=>{
+                const d=s.val(), q=d.queue||[];
+                if(q.length===0) { db.ref('rooms/'+roomID).update({step:200, curP:null}); return; }
+                const n=q.shift();
+                db.ref('rooms/'+roomID).update({step:100, curP:n, curBid:0, timer:150, winner:"None", sold:false, queue:q});
+            });
+        }
+        function hostTimer() {
+            db.ref('rooms/'+roomID).once('value', s=>{
+                const d=s.val();
+                if(d.step>=100 && d.step<200 && d.curP && !d.sold) {
+                    if(d.timer>0) db.ref('rooms/'+roomID+'/timer').set(d.timer-1);
+                    else handleSold(d);
                 }
             });
-            if(myAuth === 'host') setInterval(() => { db.ref(`rooms/${roomID}/timer`).transaction(t => (t > 0 ? t - 1 : 0)); }, 100);
         }
-
-        function activateAuction() { db.ref('rooms/'+roomID).update({ status: "LIVE" }); }
-        function adjBid(v) { document.getElementById('bid-input-val').value = parseInt(document.getElementById('bid-input-val').value) + v; }
-        function placeBid() {
-            const amt = parseInt(document.getElementById('bid-input-val').value);
-            db.ref('rooms/'+roomID).update({ curBid: amt, timer: timerMax, winner: myName, sold: false });
-            document.getElementById('sound-success').play();
+        function handleSold(d) {
+            db.ref('rooms/'+roomID).update({sold:true});
+            if(d.winner!=="None") {
+                const i=d.caps.findIndex(c=>c.name===d.winner);
+                const np = d.caps[i].pts - d.curBid;
+                let r = d.caps[i].roster||[]; 
+                r.push({name: d.curP.name, bid: d.curBid});
+                db.ref(`rooms/${roomID}/caps/${i}`).update({pts:np, roster:r});
+                log(`[낙찰] ${d.winner} -> ${d.curP.name}`);
+            } else log(`[유찰] ${d.curP.name}`);
         }
-        function enterHost() { window.location.href = document.getElementById('url-주최자').innerText; }
-        function killSession() { if(confirm("종료하시겠습니까?")) db.ref('rooms/'+roomID).remove(); }
-        window.onload = () => { if(window.location.search.includes('room')) { nextSection('auction'); syncEngine(); } };
+        function doBid(add) {
+            db.ref('rooms/'+roomID).runTransaction(d => {
+                if(!d||d.sold||d.step<100) return;
+                const me = d.caps[myIdx];
+                const next = d.curBid + add;
+                if(me.pts < next) return;
+                d.curBid = next; d.winner = me.name; d.timer = Math.min(150, d.timer+20);
+                if(!d.logs) d.logs=[]; d.logs.push(`<b>${me.name}</b> 입찰: ${next}p`);
+                return d;
+            });
+        }
+        function doCustomBid() { const v=parseInt(document.getElementById('inp-custom').value); if(v>0) doBid(v); document.getElementById('inp-custom').value=''; }
+        function log(m) { db.ref('rooms/'+roomID+'/logs').push(m); }
     </script>
 </body>
 </html>
